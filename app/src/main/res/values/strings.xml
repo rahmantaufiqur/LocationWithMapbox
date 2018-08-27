@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">LocationWithMapbox</string>
     <string name="ACCESS_TOKEN">pk.eyJ1IjoidGF1ZmlxdXIiLCJhIjoiY2psYnY3YTgwNGppdTNscXA0ZDFlMDgyYSJ9.353rlwW3mCw7N2KFSfObSQ</string>
+    <string name="ACCESS_TOKEN1">pk.eyJ1IjoidGF1ZmlxdXIiLCJhIjoiY2psYng0M2s0MmcydzNycGJ1and4YWUxeCJ9.a9V_q76YoULOUVLcvMJwGA</string>
 </resources>
