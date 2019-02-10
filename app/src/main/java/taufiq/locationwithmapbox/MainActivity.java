@@ -4,6 +4,8 @@ import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.mapbox.android.core.location.LocationEngine;
 import com.mapbox.android.core.location.LocationEngineListener;
@@ -12,6 +14,9 @@ import com.mapbox.android.core.location.LocationEngineProvider;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.Icon;
+import com.mapbox.mapboxsdk.annotations.IconFactory;
+import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -23,7 +28,13 @@ import com.mapbox.mapboxsdk.plugins.locationlayer.modes.RenderMode;
 
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, LocationEngineListener, PermissionsListener {
+import barikoi.barikoilocation.PlaceModels.Place;
+import barikoi.barikoilocation.PlaceModels.ReverseGeoPlaceModel;
+import taufiq.locationwithmapbox.Model.MainActivityInteractor;
+import taufiq.locationwithmapbox.Presenter.MainActivityPresenter;
+import taufiq.locationwithmapbox.View.MainActivityView;
+
+public class MainActivity extends AppCompatActivity implements MainActivityView,OnMapReadyCallback, LocationEngineListener, PermissionsListener {
 
     private MapView mapView;
     private MapboxMap map;
@@ -31,21 +42,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LocationEngine locationEngine;
     private LocationLayerPlugin locationLayerPlugin;
     private Location originLocation;
-
+    private LatLng destinationCoord;
+    private Marker destinationMarker;
+    TextView textView;
+    MainActivityPresenter mainActivityPresenter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Mapbox.getInstance(this,getString(R.string.ACCESS_TOKEN1));
         setContentView(R.layout.activity_main);
-        mapView=(MapView)findViewById(R.id.mapview);
+        textView=findViewById(R.id.textView);
+        mapView=findViewById(R.id.mapview);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
+        mainActivityPresenter=new MainActivityPresenter(this,new MainActivityInteractor());
     }
     @Override
     public void onMapReady(MapboxMap mapboxMap) {
         map=mapboxMap;
         enableLocation();
+        map.addOnMapLongClickListener(point -> {
+          reverseAddress(point);
+        });
     }
+    public void reverseAddress(LatLng point){
+        mainActivityPresenter.reverseGeoCode(point);
+    }
+
     private void enableLocation(){
         if(PermissionsManager.areLocationPermissionsGranted(this)){
             initializeLocationEngine();
@@ -140,7 +163,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
     @Override
     protected void onStop() {
-        super.onStop();
         if(locationEngine!=null){
             locationEngine.removeLocationUpdates();
         }
@@ -148,6 +170,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             locationLayerPlugin.onStop();
         }
         mapView.onStop();
+        super.onStop();
     }
     @Override
     public void onLowMemory() {
@@ -166,8 +189,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             locationEngine.deactivate();
         }
         mapView.onDestroy();
+        mainActivityPresenter.onDestroy();
+    }
+    @Override
+    public void onDataFetchSuccess(Place reverseGeoPlaceModel) {
+        Toast.makeText(this, "Place: "+reverseGeoPlaceModel.getAddress(), Toast.LENGTH_SHORT).show();
+        destinationCoord = new LatLng(Double.parseDouble(reverseGeoPlaceModel.getLat()),Double.parseDouble(reverseGeoPlaceModel.getLon()));
+        IconFactory iconFactory = IconFactory.getInstance(MainActivity.this);
+        Icon icon = iconFactory.fromResource(R.drawable.mapbox_marker_icon_default);
+        destinationMarker=map.addMarker(new com.mapbox.mapboxsdk.annotations.MarkerOptions().position(destinationCoord).icon(icon));
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(Double.parseDouble(reverseGeoPlaceModel.getLat()),Double.parseDouble(reverseGeoPlaceModel.getLon())),13.0));
     }
 
+    @Override
+    public void onDataFetchError(String Error) {
+
+    }
 
 
 }
